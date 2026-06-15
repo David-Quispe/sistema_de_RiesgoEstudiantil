@@ -3,8 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EstudianteResource\Pages;
+use App\Models\Carrera;
 use App\Models\Estudiante;
-use App\Models\Institucion;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -15,15 +15,24 @@ use Illuminate\Support\Facades\Auth;
 
 class EstudianteResource extends Resource
 {
-    protected static ?string $model = Estudiante::class;
-    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
-    protected static ?string $navigationLabel = 'Estudiantes';
-    protected static ?string $modelLabel = 'Estudiante';
+    protected static ?string $model            = Estudiante::class;
+    protected static ?string $navigationIcon   = 'heroicon-o-academic-cap';
+    protected static ?string $navigationLabel  = 'Estudiantes';
+    protected static ?string $modelLabel       = 'Estudiante';
     protected static ?string $pluralModelLabel = 'Estudiantes';
-    protected static ?int $navigationSort = 2;
+    protected static ?int    $navigationSort   = 2;
 
     public static function form(Form $form): Form
     {
+        // Carreras agrupadas por grupo desde la BD
+        $carrerasAgrupadas = Carrera::where('activo', 1)
+            ->orderBy('grupo')
+            ->orderBy('nombre')
+            ->get()
+            ->groupBy('grupo')
+            ->map(fn($grupo) => $grupo->pluck('nombre', 'nombre'))
+            ->toArray();
+
         return $form->schema([
             Forms\Components\Section::make('Datos del Estudiante')
                 ->columns(2)
@@ -55,15 +64,21 @@ class EstudianteResource extends Resource
                         ->email()
                         ->maxLength(150),
 
-                    Forms\Components\TextInput::make('carrera')
+                    Forms\Components\Select::make('carrera')
                         ->label('Carrera')
+                        ->options($carrerasAgrupadas)
+                        ->searchable()
                         ->required()
-                        ->maxLength(100),
+                        ->placeholder('Selecciona una carrera'),
 
                     Forms\Components\Select::make('ciclo')
                         ->label('Ciclo')
-                        ->options(array_combine(range(1, 10), range(1, 10)))
-                        ->required(),
+                        ->options([
+                            1 => 'Ciclo 1', 2 => 'Ciclo 2', 3 => 'Ciclo 3',
+                            4 => 'Ciclo 4', 5 => 'Ciclo 5', 6 => 'Ciclo 6',
+                        ])
+                        ->required()
+                        ->helperText('TECSUP tiene 6 ciclos por carrera'),
 
                     Forms\Components\Toggle::make('activo')
                         ->label('Activo')
@@ -89,7 +104,8 @@ class EstudianteResource extends Resource
                 Tables\Columns\TextColumn::make('carrera')
                     ->label('Carrera')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap(),
 
                 Tables\Columns\TextColumn::make('ciclo')
                     ->label('Ciclo')
@@ -113,12 +129,18 @@ class EstudianteResource extends Resource
                 Tables\Filters\SelectFilter::make('carrera')
                     ->label('Carrera')
                     ->options(fn() =>
-                        Estudiante::distinct()->pluck('carrera', 'carrera')->toArray()
+                        Carrera::where('activo', 1)
+                            ->orderBy('nombre')
+                            ->pluck('nombre', 'nombre')
+                            ->toArray()
                     ),
 
                 Tables\Filters\SelectFilter::make('ciclo')
                     ->label('Ciclo')
-                    ->options(array_combine(range(1, 10), range(1, 10))),
+                    ->options([
+                        1 => 'Ciclo 1', 2 => 'Ciclo 2', 3 => 'Ciclo 3',
+                        4 => 'Ciclo 4', 5 => 'Ciclo 5', 6 => 'Ciclo 6',
+                    ]),
 
                 Tables\Filters\TernaryFilter::make('activo')
                     ->label('Estado'),
@@ -141,7 +163,6 @@ class EstudianteResource extends Resource
         $query = parent::getEloquentQuery()->with('ultimaEntrevista');
         $user  = Auth::user();
 
-        // Consejero solo ve sus estudiantes (los que ha entrevistado)
         if ($user && $user->esConsejero()) {
             $query->whereHas('entrevistas', function ($q) use ($user) {
                 $q->where('consejero_id', $user->id);
@@ -151,21 +172,18 @@ class EstudianteResource extends Resource
         return $query;
     }
 
-    // Coordinador NO puede crear estudiantes — solo consejero y admin
     public static function canCreate(): bool
     {
         $user = Auth::user();
         return $user && ($user->esConsejero() || $user->esAdmin());
     }
 
-    // Coordinador NO puede editar — solo consejero y admin
     public static function canEdit($record): bool
     {
         $user = Auth::user();
         return $user && ($user->esConsejero() || $user->esAdmin());
     }
 
-    // Coordinador puede ver
     public static function canView($record): bool
     {
         return Auth::check();

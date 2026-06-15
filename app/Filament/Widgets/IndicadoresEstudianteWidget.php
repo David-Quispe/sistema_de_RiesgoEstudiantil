@@ -11,6 +11,7 @@ use Filament\Widgets\Widget;
  */
 class IndicadoresEstudianteWidget extends Widget
 {
+    protected static bool $isDiscovered = false;
     protected static string $view = 'filament.widgets.indicadores-estudiante-widget';
 
     // ID del estudiante que se muestra (0 = sin contexto)
