@@ -29,7 +29,6 @@ class DerivacionResource extends Resource
             Forms\Components\Section::make('Datos de la derivación')
                 ->columns(2)
                 ->schema([
-                    // ── options con fn() => lazy, se ejecuta solo al abrir el form ──
                     Forms\Components\Select::make('entrevista_id')
                         ->label('Entrevista')
                         ->options(fn() =>
@@ -119,7 +118,6 @@ class DerivacionResource extends Resource
                 Tables\Columns\TextColumn::make('entrevista.estudiante.carrera')
                     ->label('Carrera'),
 
-                // BadgeColumn → TextColumn + ->badge() (API Filament 3)
                 Tables\Columns\TextColumn::make('prioridad')
                     ->label('Prioridad')
                     ->badge()
@@ -168,7 +166,8 @@ class DerivacionResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->hidden(fn() => Auth::user()?->esCoordinador()),
             ]);
     }
 
@@ -179,10 +178,12 @@ class DerivacionResource extends Resource
 
         $user = Auth::user();
 
+        // Consejero solo ve sus propias derivaciones
         if ($user?->esConsejero()) {
             $query->where('consejero_id', $user->id);
         }
 
+        // Bienestar solo ve las pendientes y en atención
         if ($user?->esBienestar()) {
             $query->whereIn('estado', ['PENDIENTE', 'EN_ATENCION']);
         }
@@ -190,21 +191,25 @@ class DerivacionResource extends Resource
         return $query;
     }
 
-    // Solo consejero y coordinador pueden crear derivaciones
+    // Solo consejero puede crear derivaciones — coordinador NO
     public static function canCreate(): bool
     {
         $user = Auth::user();
-        return $user && ($user->esConsejero() || $user->esCoordinador());
+        return $user && $user->esConsejero();
     }
 
-    // Solo bienestar puede editar (atender) una derivación
-    // Consejero/coordinador puede ver pero no modificar
+    // Coordinador solo puede ver — no editar
     public static function canEdit($record): bool
     {
         $user = Auth::user();
         if ($user?->esAdmin()) return true;
         if ($user?->esBienestar()) return true;
         return false;
+    }
+
+    public static function canView($record): bool
+    {
+        return Auth::check();
     }
 
     public static function getPages(): array

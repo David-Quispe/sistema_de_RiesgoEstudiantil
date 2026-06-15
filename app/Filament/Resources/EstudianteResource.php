@@ -38,7 +38,7 @@ class EstudianteResource extends Resource
                         ->label('Institución')
                         ->relationship('institucion', 'nombre')
                         ->required()
-                        ->default(1), // TECSUP
+                        ->default(1),
 
                     Forms\Components\TextInput::make('nombre')
                         ->label('Nombres')
@@ -99,10 +99,10 @@ class EstudianteResource extends Resource
                     ->label('Riesgo actual')
                     ->badge()
                     ->color(fn(?string $state): string => match($state) {
-                        'ALTO'     => 'danger',
-                        'MEDIO'    => 'warning',
-                        'BAJO'     => 'success',
-                        default    => 'gray',
+                        'ALTO'  => 'danger',
+                        'MEDIO' => 'warning',
+                        'BAJO'  => 'success',
+                        default => 'gray',
                     }),
 
                 Tables\Columns\IconColumn::make('activo')
@@ -125,11 +125,13 @@ class EstudianteResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->hidden(fn() => Auth::user()?->esCoordinador()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->hidden(fn() => Auth::user()?->esCoordinador()),
                 ]),
             ]);
     }
@@ -147,6 +149,26 @@ class EstudianteResource extends Resource
         }
 
         return $query;
+    }
+
+    // Coordinador NO puede crear estudiantes — solo consejero y admin
+    public static function canCreate(): bool
+    {
+        $user = Auth::user();
+        return $user && ($user->esConsejero() || $user->esAdmin());
+    }
+
+    // Coordinador NO puede editar — solo consejero y admin
+    public static function canEdit($record): bool
+    {
+        $user = Auth::user();
+        return $user && ($user->esConsejero() || $user->esAdmin());
+    }
+
+    // Coordinador puede ver
+    public static function canView($record): bool
+    {
+        return Auth::check();
     }
 
     public static function getPages(): array
