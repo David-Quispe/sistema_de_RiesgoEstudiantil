@@ -73,7 +73,8 @@ class EntrevistaResource extends Resource
                         )
                         ->default(fn() => Auth::id())
                         ->required()
-                        ->disabled(),
+                        ->disabled()
+                        ->dehydrated(),  // ← FIX: envía el valor aunque el campo esté disabled
 
                     Forms\Components\Select::make('periodo_id')
                         ->label('Periodo')
