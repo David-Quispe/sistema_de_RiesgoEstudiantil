@@ -175,13 +175,13 @@ class EstudianteResource extends Resource
     public static function canCreate(): bool
     {
         $user = Auth::user();
-        return $user && ($user->esConsejero() || $user->esAdmin());
+        return $user && ($user->esConsejero() || $user->esCoordinador());
     }
 
     public static function canEdit($record): bool
     {
         $user = Auth::user();
-        return $user && ($user->esConsejero() || $user->esAdmin());
+        return $user && ($user->esConsejero() || $user->esCoordinador());
     }
 
     public static function canView($record): bool

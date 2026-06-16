@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\EntrevistaResource\Pages;
 
 use App\Filament\Resources\EntrevistaResource;
+use App\Models\ConfiguracionRiesgo;
 use App\Services\AlertaService;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -10,6 +11,27 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateEntrevista extends CreateRecord
 {
     protected static string $resource = EntrevistaResource::class;
+
+    /**
+     * Se ejecuta antes de renderizar el formulario vacío.
+     * Inyecta los 6 indicadores desde CONFIGURACION_RIESGO para que
+     * aparezcan pre-cargados (nombre y peso fijos, puntaje vacío).
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['indicadores'] = ConfiguracionRiesgo::where('activo', 1)
+            ->orderBy('id')
+            ->get()
+            ->map(fn($config) => [
+                'nombre'      => $config->indicador,
+                'peso'        => $config->peso,
+                'puntaje'     => null,
+                'observacion' => null,
+            ])
+            ->toArray();
+
+        return $data;
+    }
 
     protected function afterCreate(): void
     {
@@ -20,7 +42,6 @@ class CreateEntrevista extends CreateRecord
         $this->record->refresh();
 
         // 3. Evaluar y generar alertas si corresponde
-        $nivelAntes = null; // nueva entrevista, no había nivel previo
         app(AlertaService::class)->evaluarEntrevista($this->record);
 
         // 4. Notificación visual en el panel según el nivel resultante

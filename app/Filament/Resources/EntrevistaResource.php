@@ -25,18 +25,33 @@ class EntrevistaResource extends Resource
     protected static ?string $pluralModelLabel = 'Entrevistas';
     protected static ?int    $navigationSort  = 3;
 
+    /**
+     * Carga los 6 indicadores activos desde CONFIGURACION_RIESGO
+     * y los convierte en el array que necesita el Repeater como defaultItems.
+     */
+    public static function indicadoresDefault(): array
+    {
+        return ConfiguracionRiesgo::where('activo', 1)
+            ->orderBy('id')
+            ->get()
+            ->map(fn($config) => [
+                'nombre'      => $config->indicador,
+                'peso'        => $config->peso,
+                'puntaje'     => null,   // el consejero lo llenará
+                'observacion' => null,
+            ])
+            ->toArray();
+    }
+
     public static function form(Form $form): Form
     {
-        // Carga los 6 indicadores fijos desde CONFIGURACION_RIESGO
-        $indicadoresConfig = ConfiguracionRiesgo::where('activo', 1)
-            ->orderBy('id')
-            ->get();
-
         return $form->schema([
 
+            /* ── Datos generales de la entrevista ─────────────────────── */
             Forms\Components\Section::make('Datos de la entrevista')
                 ->columns(2)
                 ->schema([
+
                     Forms\Components\Select::make('estudiante_id')
                         ->label('Estudiante')
                         ->options(fn() =>
@@ -46,7 +61,7 @@ class EntrevistaResource extends Resource
                         )
                         ->searchable()
                         ->required()
-                        ->disabled(fn($record) => $record !== null), // no cambiar estudiante al editar
+                        ->disabled(fn($record) => $record !== null),
 
                     Forms\Components\Select::make('consejero_id')
                         ->label('Consejero')
@@ -58,7 +73,7 @@ class EntrevistaResource extends Resource
                         )
                         ->default(fn() => Auth::id())
                         ->required()
-                        ->disabled(), // siempre fijo, no editable
+                        ->disabled(),
 
                     Forms\Components\Select::make('periodo_id')
                         ->label('Periodo')
@@ -76,35 +91,41 @@ class EntrevistaResource extends Resource
                         ->rows(3),
                 ]),
 
+            /* ── Indicadores de riesgo — pre-cargados automáticamente ─── */
             Forms\Components\Section::make('Indicadores de riesgo')
-                ->description('Los 6 indicadores son fijos y definidos por el administrador. Solo ingrese el puntaje de 0 a 10 para cada uno.')
+                ->description('Los 6 indicadores y sus pesos son fijos. Solo ingrese el puntaje de 0 a 10 para cada uno.')
                 ->schema([
-                    // ── Repeater de solo LECTURA para nombre y peso; editable solo puntaje ──
+
                     Forms\Components\Repeater::make('indicadores')
                         ->relationship('indicadores')
                         ->label('')
                         ->columns(4)
-                        ->addable(false)   // consejero NO puede agregar indicadores
-                        ->deletable(false) // consejero NO puede eliminar indicadores
+                        ->addable(false)      // consejero NO agrega indicadores
+                        ->deletable(false)    // consejero NO elimina indicadores
                         ->reorderable(false)
-                        ->defaultItems($indicadoresConfig->count() ?: 6)
+                        /*
+                         * defaultItems precarga los 6 indicadores al abrir el formulario
+                         * de CREACIÓN. En edición, Filament carga los registros guardados.
+                         */
+                        ->default(fn() => static::indicadoresDefault())
                         ->schema([
-                            // Nombre del indicador — solo lectura
+
+                            /* Nombre del indicador — solo lectura */
                             Forms\Components\TextInput::make('nombre')
                                 ->label('Indicador')
                                 ->required()
                                 ->maxLength(80)
-                                ->disabled()   // no editable por el consejero
-                                ->dehydrated(), // igual se guarda al enviar
+                                ->disabled()
+                                ->dehydrated(),   // se envía aunque esté disabled
 
-                            // Peso — solo lectura
+                            /* Peso — solo lectura (lo controla el admin) */
                             Forms\Components\TextInput::make('peso')
                                 ->label('Peso')
                                 ->numeric()
-                                ->disabled()   // solo el admin lo cambia en ConfiguracionRiesgo
-                                ->dehydrated(),
+                                ->disabled()
+                                ->dehydrated(),   // se envía aunque esté disabled
 
-                            // Puntaje — único campo editable por el consejero
+                            /* Puntaje — único campo editable */
                             Forms\Components\TextInput::make('puntaje')
                                 ->label('Puntaje (0 – 10)')
                                 ->numeric()
@@ -113,16 +134,18 @@ class EntrevistaResource extends Resource
                                 ->step(0.5)
                                 ->required(),
 
-                            // Observación opcional
+                            /* Observación libre */
                             Forms\Components\TextInput::make('observacion')
                                 ->label('Observación')
                                 ->maxLength(500),
                         ]),
                 ]),
 
+            /* ── Resultado calculado ───────────────────────────────────── */
             Forms\Components\Section::make('Resultado del cálculo de riesgo')
                 ->columns(2)
                 ->schema([
+
                     Forms\Components\TextInput::make('puntaje_total')
                         ->label('Puntaje ponderado')
                         ->numeric()
@@ -213,7 +236,6 @@ class EntrevistaResource extends Resource
         $query = parent::getEloquentQuery()->with(['estudiante', 'consejero', 'periodo']);
         $user  = Auth::user();
 
-        // Consejero solo ve sus propias entrevistas
         if ($user?->esConsejero()) {
             $query->where('consejero_id', $user->id);
         }
@@ -221,14 +243,12 @@ class EntrevistaResource extends Resource
         return $query;
     }
 
-    // Solo consejero puede crear entrevistas — coordinador NO
     public static function canCreate(): bool
     {
         $user = Auth::user();
         return $user && $user->esConsejero();
     }
 
-    // Coordinador solo puede ver — no editar
     public static function canEdit($record): bool
     {
         $user = Auth::user();

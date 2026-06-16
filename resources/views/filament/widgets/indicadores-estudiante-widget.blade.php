@@ -11,19 +11,44 @@
             <p class="text-sm text-gray-400 italic">Este estudiante aún no tiene entrevistas registradas.</p>
         @else
 
-            {{-- Badges de resumen --}}
-            <div class="flex flex-wrap gap-3 mb-6">
-                <div class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-                    @if($nivelRiesgo === 'ALTO') bg-red-100 text-red-700
-                    @elseif($nivelRiesgo === 'MEDIO') bg-yellow-100 text-yellow-700
-                    @else bg-green-100 text-green-700 @endif">
-                    @if($nivelRiesgo === 'ALTO') 🔴
-                    @elseif($nivelRiesgo === 'MEDIO') 🟡
-                    @else 🟢 @endif
-                    Riesgo: {{ $nivelRiesgo }}
+            {{-- ── Ficha compacta del estudiante ── --}}
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                {{-- Iniciales --}}
+                <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-content-center items-center justify-center text-white font-bold text-lg"
+                     style="background-color: {{ $nivelRiesgo === 'ALTO' ? '#DC2626' : ($nivelRiesgo === 'MEDIO' ? '#D97706' : '#16A34A') }}">
+                    {{ strtoupper(substr($nombreEstudiante ?? 'E', 0, 1)) }}
                 </div>
-                <div class="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700">
-                    📊 Puntaje ponderado: {{ number_format($puntajeTotal, 2) }}
+                {{-- Info --}}
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-gray-900 dark:text-white text-base truncate">{{ $nombreEstudiante }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        {{ $codigoEstudiante }} · {{ $carreraEstudiante }} · Ciclo {{ $cicloEstudiante }}
+                    </p>
+                </div>
+                {{-- Stats rápidos --}}
+                <div class="flex gap-4 text-center flex-shrink-0">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Puntaje</p>
+                        <p class="text-xl font-bold mt-0.5
+                            {{ $nivelRiesgo === 'ALTO' ? 'text-red-600' : ($nivelRiesgo === 'MEDIO' ? 'text-yellow-600' : 'text-green-600') }}">
+                            {{ number_format($puntajeTotal, 2) }}
+                        </p>
+                    </div>
+                    <div class="border-l border-gray-200 dark:border-gray-600 pl-4">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Entrevistas</p>
+                        <p class="text-xl font-bold text-gray-800 dark:text-white mt-0.5">{{ $totalEntrevistas }}</p>
+                    </div>
+                    <div class="border-l border-gray-200 dark:border-gray-600 pl-4">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Última</p>
+                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-0.5">{{ $fechaEntrevista }}</p>
+                    </div>
+                    <div class="border-l border-gray-200 dark:border-gray-600 pl-4">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Nivel</p>
+                        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-bold
+                            {{ $nivelRiesgo === 'ALTO' ? 'bg-red-100 text-red-700' : ($nivelRiesgo === 'MEDIO' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700') }}">
+                            {{ $nivelRiesgo }}
+                        </span>
+                    </div>
                 </div>
             </div>
 

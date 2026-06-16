@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Entrevista;
+use App\Models\Estudiante;
 use Filament\Widgets\Widget;
 
 /**
@@ -18,12 +19,17 @@ class IndicadoresEstudianteWidget extends Widget
     public int $estudiante_id = 0;
 
     // Datos procesados para la vista
-    public array $etiquetas = [];
-    public array $puntajes  = [];
-    public array $pesos     = [];
-    public ?string $nivelRiesgo   = null;
-    public ?float  $puntajeTotal  = null;
+    public array   $etiquetas      = [];
+    public array   $puntajes       = [];
+    public array   $pesos          = [];
+    public ?string $nivelRiesgo    = null;
+    public ?float  $puntajeTotal   = null;
     public ?string $fechaEntrevista = null;
+    public ?string $nombreEstudiante = null;
+    public ?string $codigoEstudiante = null;
+    public ?string $carreraEstudiante = null;
+    public ?int    $cicloEstudiante  = null;
+    public ?int    $totalEntrevistas = null;
 
     public function mount(): void
     {
@@ -34,6 +40,15 @@ class IndicadoresEstudianteWidget extends Widget
     {
         if (!$this->estudiante_id) {
             return;
+        }
+
+        $estudiante = Estudiante::find($this->estudiante_id);
+        if ($estudiante) {
+            $this->nombreEstudiante  = $estudiante->nombre_completo;
+            $this->codigoEstudiante  = $estudiante->codigo;
+            $this->carreraEstudiante = $estudiante->carrera;
+            $this->cicloEstudiante   = $estudiante->ciclo;
+            $this->totalEntrevistas  = $estudiante->entrevistas()->count();
         }
 
         $entrevista = Entrevista::where('estudiante_id', $this->estudiante_id)

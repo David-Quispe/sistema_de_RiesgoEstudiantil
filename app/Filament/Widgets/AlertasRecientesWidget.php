@@ -13,11 +13,8 @@ class AlertasRecientesWidget extends BaseWidget
     protected static ?int    $sort    = 2;
     protected static ?string $heading = '🔔 Alertas recientes no leídas';
 
-    // Ocupa todo el ancho
     protected int|string|array $columnSpan = 'full';
-
-    // Refresca cada 30 segundos para mostrar alertas nuevas sin recargar
-    protected static ?string $pollingInterval = '30s';
+    protected static ?string   $pollingInterval = '30s';
 
     public function table(Table $table): Table
     {
@@ -31,7 +28,6 @@ class AlertasRecientesWidget extends BaseWidget
                     ->limit(15)
             )
             ->columns([
-                // Tipo con badge de color — API correcta Filament 3
                 Tables\Columns\TextColumn::make('tipo')
                     ->label('Tipo')
                     ->badge()
@@ -41,32 +37,47 @@ class AlertasRecientesWidget extends BaseWidget
                         'DERIVACION'           => 'primary',
                         default                => 'gray',
                     })
+                    ->icon(fn(string $state): string => match ($state) {
+                        'RIESGO_ALTO'          => 'heroicon-m-exclamation-triangle',
+                        'DETERIORO_PROGRESIVO' => 'heroicon-m-arrow-trending-up',
+                        'DERIVACION'           => 'heroicon-m-arrow-right-circle',
+                        default                => 'heroicon-m-bell',
+                    })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'RIESGO_ALTO'          => '⚠️ Riesgo Alto',
-                        'DETERIORO_PROGRESIVO' => '📈 Deterioro',
-                        'DERIVACION'           => '📋 Derivación',
-                        'SISTEMA'              => '🔧 Sistema',
+                        'RIESGO_ALTO'          => 'Riesgo Alto',
+                        'DETERIORO_PROGRESIVO' => 'Deterioro',
+                        'DERIVACION'           => 'Derivación',
+                        'SISTEMA'              => 'Sistema',
                         default                => $state,
                     }),
 
                 Tables\Columns\TextColumn::make('estudiante.nombre_completo')
                     ->label('Estudiante')
                     ->searchable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->icon('heroicon-m-user'),
 
                 Tables\Columns\TextColumn::make('mensaje')
                     ->label('Mensaje')
                     ->limit(90)
-                    ->tooltip(fn(Alerta $record): string => $record->mensaje),
+                    ->tooltip(fn(Alerta $record): string => $record->mensaje)
+                    ->color('gray'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Generada')
-                    ->since()           // Muestra "hace 5 min", "hace 2 horas", etc.
-                    ->sortable(),
+                    ->since()
+                    ->sortable()
+                    ->color('gray'),
             ])
+            ->recordClasses(fn(Alerta $record): string => match ($record->tipo) {
+                'RIESGO_ALTO'          => 'border-l-4 border-l-red-500',
+                'DETERIORO_PROGRESIVO' => 'border-l-4 border-l-amber-400',
+                'DERIVACION'           => 'border-l-4 border-l-blue-500',
+                default                => '',
+            })
             ->actions([
                 Tables\Actions\Action::make('marcar_leida')
-                    ->label('✓ Leída')
+                    ->label('Leída')
                     ->color('success')
                     ->icon('heroicon-m-check')
                     ->action(fn(Alerta $record) => $record->marcarLeida())

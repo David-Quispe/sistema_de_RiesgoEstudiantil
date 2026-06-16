@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\Login;
 use App\Filament\Widgets\AlertasRecientesWidget;
 use App\Filament\Widgets\RiesgoCarreraWidget;
 use App\Filament\Widgets\RiesgoStatsWidget;
@@ -30,16 +31,31 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
 
-            // ── Identidad visual SMER ──────────────────────────────────────
-            ->brandName('SMER — TECSUP')
+            // ── Identidad visual TECSUP ────────────────────────────────────
+            ->brandName('SMER')
+            ->brandLogo('https://www.tecsup.edu.pe/wp-content/uploads/2024/07/Group-680.png')
+            ->brandLogoHeight('2rem')
             ->colors([
-                'primary'  => Color::Blue,
-                'danger'   => Color::Red,
-                'warning'  => Color::Amber,
-                'success'  => Color::Green,
-                'info'     => Color::Sky,
+                // Azul corporativo TECSUP #1e3a5f
+                'primary' => [
+                     50 => '236, 242, 248',
+                    100 => '207, 222, 237',
+                    200 => '163, 191, 218',
+                    300 => '116, 158, 197',
+                    400 => '74, 128, 177',
+                    500 => '44, 100, 153',
+                    600 => '30, 74, 120',
+                    700 => '22, 58, 95',
+                    800 => '15, 42, 70',
+                    900 => '9, 27, 47',
+                    950 => '5, 15, 27',
+                ],
+                'danger'  => Color::Red,
+                'warning' => Color::Amber,
+                'success' => Color::Green,
+                'info'    => Color::Sky,
             ])
 
             // ── Modelo de autenticación ────────────────────────────────────
@@ -59,20 +75,20 @@ class AdminPanelProvider extends PanelProvider
                 for: 'App\\Filament\\Widgets'
             )
 
-            // ── Página de inicio ──────────────────────────────────────────
+            // ── Página de inicio ───────────────────────────────────────────
             ->pages([
                 Pages\Dashboard::class,
             ])
 
-            // ── Widgets del dashboard (orden controlado por $sort en cada clase)
+            // ── Widgets del dashboard ──────────────────────────────────────
             ->widgets([
-                RiesgoStatsWidget::class,      // sort=1 — tarjetas KPI
-                AlertasRecientesWidget::class, // sort=2 — tabla de alertas
-                TendenciaRiesgoWidget::class,  // sort=3 — gráfico de líneas
-                RiesgoCarreraWidget::class,    // sort=4 — barras por carrera
+                RiesgoStatsWidget::class,
+                AlertasRecientesWidget::class,
+                TendenciaRiesgoWidget::class,
+                RiesgoCarreraWidget::class,
             ])
 
-            // ── Grupos de navegación ──────────────────────────────────────
+            // ── Grupos de navegación ───────────────────────────────────────
             ->navigationGroups([
                 NavigationGroup::make('Seguimiento')
                     ->icon('heroicon-o-clipboard-document-check'),
@@ -86,7 +102,7 @@ class AdminPanelProvider extends PanelProvider
                     ->collapsed(),
             ])
 
-            // ── Middleware ────────────────────────────────────────────────
+            // ── Middleware ─────────────────────────────────────────────────
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
