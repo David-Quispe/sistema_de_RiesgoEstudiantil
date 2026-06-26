@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class Derivacion extends Model
 {
@@ -26,6 +27,21 @@ class Derivacion extends Model
     const PRIORIDAD_NORMAL  = 'NORMAL';
     const PRIORIDAD_ALTA    = 'ALTA';
     const PRIORIDAD_URGENTE = 'URGENTE';
+
+    protected static function booted(): void
+    {
+        // Regla de negocio (CUS06): no se puede cerrar una derivación
+        // sin haber documentado su resolución. Esta validación se aplica
+        // a nivel de modelo para que no pueda saltarse desde ningún punto
+        // de entrada (Filament, tinker, comandos, futuras integraciones).
+        static::saving(function (Derivacion $derivacion) {
+            if ($derivacion->estado === self::ESTADO_CERRADA && blank($derivacion->resolucion)) {
+                throw ValidationException::withMessages([
+                    'resolucion' => 'Debes registrar la resolución antes de cerrar la derivación.',
+                ]);
+            }
+        });
+    }
 
     public function entrevista()
     {

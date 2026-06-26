@@ -72,6 +72,7 @@ class DerivacionResource extends Resource
                             'CERRADA'     => 'Cerrada',
                         ])
                         ->default('PENDIENTE')
+                        ->live()
                         ->required(),
 
                     Forms\Components\Textarea::make('motivo')
@@ -83,7 +84,8 @@ class DerivacionResource extends Resource
 
             Forms\Components\Section::make('Atención y resolución')
                 ->columns(2)
-                ->collapsed()
+                ->collapsible()
+                ->collapsed(fn (Forms\Get $get) => $get('estado') !== 'CERRADA')
                 ->schema([
                     Forms\Components\Select::make('bienestar_id')
                         ->label('Atendido por (Bienestar)')
@@ -101,7 +103,12 @@ class DerivacionResource extends Resource
                     Forms\Components\Textarea::make('resolucion')
                         ->label('Resolución')
                         ->columnSpanFull()
-                        ->rows(3),
+                        ->rows(3)
+                        ->requiredIf('estado', 'CERRADA')
+                        ->helperText('Obligatorio para cerrar la derivación: debe documentarse cómo se resolvió el caso.')
+                        ->validationMessages([
+                            'required_if' => 'Debes registrar la resolución antes de cerrar la derivación.',
+                        ]),
                 ]),
         ]);
     }

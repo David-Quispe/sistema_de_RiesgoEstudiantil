@@ -149,6 +149,14 @@ class EstudianteResource extends Resource
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
                     ->hidden(fn() => Auth::user()?->esCoordinador()),
+                Tables\Actions\Action::make('fichaPdf')
+                    ->label('Ficha PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->url(fn (Estudiante $record): string =>
+                        static::getUrl('view', ['record' => $record])
+                    )
+                    ->tooltip('Abrir ficha del estudiante para generar PDF'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

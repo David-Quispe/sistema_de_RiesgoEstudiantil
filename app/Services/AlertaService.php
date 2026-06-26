@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Mail\RiesgoAltoMail;
 use App\Models\Alerta;
 use App\Models\Entrevista;
 use App\Models\Estudiante;
 use App\Models\Usuario;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * AlertaService
@@ -72,6 +75,18 @@ class AlertaService
                     'mensaje'       => $mensaje,
                     'leida'         => false,
                 ]);
+
+                // Envío de correo real (RF13 / CUS07) — además de la alerta interna
+                if ($usuario->email) {
+                    try {
+                        Mail::to($usuario->email)->send(new RiesgoAltoMail($entrevista));
+                    } catch (\Throwable $e) {
+                        Log::error('[SMER] Error enviando correo de riesgo alto.', [
+                            'usuario_id' => $usuario->id,
+                            'error'      => $e->getMessage(),
+                        ]);
+                    }
+                }
             }
         }
     }
